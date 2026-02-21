@@ -58,7 +58,7 @@ app.post('/login', async (req, res) => {
         // JWT Token oluştur (Kullanıcıya verilen dijital kimlik)
         const token = jwt.sign(
             { id: user.id, role: user.role },
-            'gizli_anahtar_buraya', // Burayı daha sonra .env'ye taşıyacağız
+            process.env.JWT_SECRET, // .env dosyasındaki gizli anahtar
             { expiresIn: '1d' } // 1 gün geçerli
         );
 
