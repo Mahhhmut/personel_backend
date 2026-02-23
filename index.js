@@ -75,6 +75,7 @@ app.post('/login', async (req, res) => {
 
 // Sunucuyu Başlat
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Sunucu http://localhost:${PORT} adresinde ayaklandı.`);
+// '0.0.0.0' ekleyerek sunucunun dış dünyadan (IP üzerinden) gelen isteklere kapısını açıyoruz.
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Sunucu dış bağlantılara açıldı: http://192.168.1.4:${PORT}`);
 });
