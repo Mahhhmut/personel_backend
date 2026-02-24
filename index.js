@@ -73,9 +73,47 @@ app.post('/login', async (req, res) => {
     }
 });
 
+// --- MESAI İŞLEMLERİ (YENİ) ---
+
+// Mesaiye Başla (Check-in)
+app.post('/attendance/check-in', async (req, res) => {
+    const { user_id } = req.body;
+
+    try {
+        const [result] = await db.execute(
+            'INSERT INTO attendance (user_id, check_in) VALUES (?, NOW())',
+            [user_id]
+        );
+        res.status(201).json({ message: 'Mesai başarıyla başladı!', id: result.insertId });
+    } catch (err) {
+        res.status(500).json({ error: 'Veritabanı hatası: ' + err.message });
+    }
+});
+
+// Mesaiyi Bitir (Check-out)
+app.post('/attendance/check-out', async (req, res) => {
+    const { user_id } = req.body;
+
+    try {
+        // Personelin o günkü henüz bitmemiş (check_out'u NULL olan) son kaydını bul ve güncelle
+        const [result] = await db.execute(
+            'UPDATE attendance SET check_out = NOW() WHERE user_id = ? AND check_out IS NULL ORDER BY check_in DESC LIMIT 1',
+            [user_id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Aktif mesai kaydı bulunamadı!' });
+        }
+
+        res.json({ message: 'Mesai başarıyla bitirildi!' });
+    } catch (err) {
+        res.status(500).json({ error: 'Veritabanı hatası: ' + err.message });
+    }
+});
+
 // Sunucuyu Başlat
 const PORT = process.env.PORT || 3000;
 // '0.0.0.0' ekleyerek sunucunun dış dünyadan (IP üzerinden) gelen isteklere kapısını açıyoruz.
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Sunucu dış bağlantılara açıldı: http://192.168.1.4:${PORT}`);
+    console.log(`Sunucu dış bağlantılara açıldı: http://192.168.1.8:${PORT}`);
 });
