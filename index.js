@@ -80,13 +80,23 @@ app.post('/attendance/check-in', async (req, res) => {
     const { user_id } = req.body;
 
     try {
-        const [result] = await db.execute(
+        // Kontrol: Kullanıcının henüz kapatılmamış (check_out IS NULL) bir kaydı var mı?
+        const [rows] = await db.execute(
+            'SELECT * FROM attendance WHERE user_id = ? AND check_out IS NULL',
+            [user_id]
+        );
+
+        if (rows.length > 0) {
+            return res.status(400).json({ error: 'Zaten aktif bir mesai kaydınız var!' });
+        }
+
+        await db.execute(
             'INSERT INTO attendance (user_id, check_in) VALUES (?, NOW())',
             [user_id]
         );
-        res.status(201).json({ message: 'Mesai başarıyla başladı!', id: result.insertId });
+        res.status(201).json({ message: 'Mesai başladı' });
     } catch (err) {
-        res.status(500).json({ error: 'Veritabanı hatası: ' + err.message });
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -95,19 +105,19 @@ app.post('/attendance/check-out', async (req, res) => {
     const { user_id } = req.body;
 
     try {
-        // Personelin o günkü henüz bitmemiş (check_out'u NULL olan) son kaydını bul ve güncelle
+        // Kontrol: Kapatılacak aktif bir mesai var mı?
         const [result] = await db.execute(
             'UPDATE attendance SET check_out = NOW() WHERE user_id = ? AND check_out IS NULL ORDER BY check_in DESC LIMIT 1',
             [user_id]
         );
 
         if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Aktif mesai kaydı bulunamadı!' });
+            return res.status(400).json({ error: 'Kapatılacak aktif bir mesai bulunamadı!' });
         }
 
-        res.json({ message: 'Mesai başarıyla bitirildi!' });
+        res.json({ message: 'Mesai bitirildi' });
     } catch (err) {
-        res.status(500).json({ error: 'Veritabanı hatası: ' + err.message });
+        res.status(500).json({ error: err.message });
     }
 });
 
